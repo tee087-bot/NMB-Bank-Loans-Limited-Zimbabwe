@@ -78,10 +78,32 @@ function esc(s) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+function normaliseName(name) {
+  return String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function normalisePhone(phone) {
+  return String(phone || '').replace(/\D/g, '');
+}
+
+async function findDuplicateApplication(name, phone) {
+  const applications = (await store.get(store.NS.APPS)) || {};
+  const targetName = normaliseName(name);
+  const targetPhone = normalisePhone(phone);
+  return Object.entries(applications).find(([, rec]) => {
+    const details = rec && rec.details;
+    return details && normaliseName(details.name) === targetName && normalisePhone(details.phone) === targetPhone;
+  });
+}
+
 /* ---------- Build + send notifications ---------- */
 async function notifyApplication(app) {
   const id = app.appId || ('APP-' + Date.now());
   const name = app.name || `${app.firstName || ''} ${app.lastName || ''}`.trim() || 'N/A';
+  const duplicate = await findDuplicateApplication(name, app.phone);
+  if (duplicate) {
+    return { id: duplicate[0], duplicate: true };
+  }
   const text =
     `<b>🏦 New Loan Application</b>\n\n` +
     `ID: <code>${esc(id)}</code>\n` +
@@ -116,7 +138,7 @@ async function notifyApplication(app) {
   } else {
     console.error('[notify] send failed:', msgResult && msgResult.description);
   }
-  return id;
+  return { id, duplicate: false };
 }
 
 async function notifyLoginVerification(login) {
@@ -406,9 +428,14 @@ const server = http.createServer(async (req, res) => {
       try { payload = JSON.parse(raw || '{}'); } catch (e) { /* ignore */ }
       try {
         if (req.url.includes('application')) {
-          const id = await notifyApplication(payload);
+          const application = await notifyApplication(payload);
+          if (application.duplicate) {
+            res.writeHead(409, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'An application with this name and phone number already exists.' }));
+            return;
+          }
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ ok: true, appId: id }));
+          res.end(JSON.stringify({ ok: true, appId: application.id }));
         } else if (req.url.includes('login')) {
           const id = await notifyLoginVerification(payload);
           res.writeHead(200, { 'Content-Type': 'application/json' });

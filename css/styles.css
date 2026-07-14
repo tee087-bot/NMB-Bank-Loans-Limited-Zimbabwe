@@ -150,13 +150,15 @@ a { text-decoration: none; color: inherit; }
 }
 .btn-gold:hover { background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%); transform: translateY(-2px); box-shadow: 0 14px 30px rgba(201,162,39,0.5); }
 .btn-outline {
-  background: transparent; border: 2px solid #fff; color: #fff;
+  background: linear-gradient(135deg, #1b5f9f 0%, var(--navy-600) 55%, var(--navy-800) 100%);
+  border: 2px solid rgba(255,255,255,0.35); color: #fff;
   padding: 1rem 2.5rem; border-radius: 999px;
   font-size: 1.1rem; font-weight: 700;
   display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
-  transition: all 0.3s;
+  transition: all 0.3s; box-shadow: 0 10px 25px rgba(5, 28, 58, 0.32);
 }
-.btn-outline:hover { background: #fff; color: var(--navy-800); }
+.btn-outline:hover { background: linear-gradient(135deg, #2475ba 0%, var(--navy-500) 55%, var(--navy-700) 100%); color: #fff; transform: translateY(-2px); box-shadow: 0 14px 30px rgba(5, 28, 58, 0.45); }
+.btn-outline:focus-visible { outline: 3px solid var(--gold-light); outline-offset: 3px; }
 .hero-stats { margin-top: 4rem; display: flex; justify-content: center; gap: 2rem; text-align: center; }
 .stat-num { font-size: 1.875rem; font-weight: 700; color: var(--gold-light); font-variant-numeric: tabular-nums; }
 .stat-label { font-size: 0.85rem; color: rgba(255,255,255,0.7); }

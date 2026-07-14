@@ -41,6 +41,7 @@ function loadFromFile() {
 async function get(ns, id) {
   loadFromFile();
   if (!memory[ns]) return undefined;
+  if (id === undefined) return memory[ns];
   return memory[ns][id];
 }
 

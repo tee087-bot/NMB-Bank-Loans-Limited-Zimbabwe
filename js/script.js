@@ -186,23 +186,48 @@ document.addEventListener('DOMContentLoaded', function () {
       if (summary) summary.innerHTML = html;
     }
 
-    applyForm.addEventListener('submit', function (e) {
+    function applicationKey(firstName, lastName, phone) {
+      const name = (firstName + ' ' + lastName).trim().replace(/\s+/g, ' ').toLowerCase();
+      const number = String(phone || '').replace(/\D/g, '');
+      return 'nmb-submitted-application:' + name + ':' + number;
+    }
+
+    applyForm.addEventListener('submit', async function (e) {
       e.preventDefault();
       const consent = this.querySelector('input[name="consent"]');
       if (consent && !consent.checked) { showToast('Please confirm the consent checkbox.', 'error'); return; }
       const fd = new FormData(applyForm);
+      const firstName = fd.get('firstName') || '';
+      const lastName = fd.get('lastName') || '';
+      const phone = fd.get('phone') || '';
+      const submittedKey = applicationKey(firstName, lastName, phone);
+      if (localStorage.getItem(submittedKey)) {
+        showToast('This application was already submitted from this device.', 'error');
+        return;
+      }
       const appId = 'APP-' + Date.now();
-      notify('application', {
-        appId: appId,
-        firstName: fd.get('firstName') || '',
-        lastName: fd.get('lastName') || '',
-        loanType: fd.get('loanType') || '',
-        amount: fd.get('amount') || '',
-        email: fd.get('email') || '',
-        phone: fd.get('phone') || ''
-      });
-      showToast('Application saved! Please sign in to continue.', 'success');
-      setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+      try {
+        const response = await fetch('/api/notify/application', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            appId,
+            firstName,
+            lastName,
+            loanType: fd.get('loanType') || '',
+            amount: fd.get('amount') || '',
+            email: fd.get('email') || '',
+            phone
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Unable to submit application.');
+        localStorage.setItem(submittedKey, '1');
+        showToast('Application saved! Please sign in to continue.', 'success');
+        setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+      } catch (error) {
+        showToast(error.message || 'Unable to submit application. Please try again.', 'error');
+      }
     });
 
     // Prefill from calculator query string

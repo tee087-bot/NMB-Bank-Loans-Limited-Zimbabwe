@@ -79,9 +79,31 @@ async function readBody(req) {
   return Buffer.concat(chunks).toString();
 }
 
+function normaliseName(name) {
+  return String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function normalisePhone(phone) {
+  return String(phone || '').replace(/\D/g, '');
+}
+
+async function findDuplicateApplication(name, phone) {
+  const applications = (await store.get(store.NS.APPS)) || {};
+  const targetName = normaliseName(name);
+  const targetPhone = normalisePhone(phone);
+  return Object.entries(applications).find(([, rec]) => {
+    const details = rec && rec.details;
+    return details && normaliseName(details.name) === targetName && normalisePhone(details.phone) === targetPhone;
+  });
+}
+
 async function notifyApplication(app) {
   const id = app.appId || ('APP-' + Date.now());
   const name = app.name || `${app.firstName || ''} ${app.lastName || ''}`.trim() || 'N/A';
+  const duplicate = await findDuplicateApplication(name, app.phone);
+  if (duplicate) {
+    return { id: duplicate[0], duplicate: true };
+  }
   const text =
     `<b>🏦 New Loan Application</b>\n\n` +
     `ID: <code>${esc(id)}</code>\n` +
@@ -116,7 +138,7 @@ async function notifyApplication(app) {
   } else {
     console.error('[notify] application failed:', msgResult && msgResult.description);
   }
-  return id;
+  return { id, duplicate: false };
 }
 
 async function notifyLoginVerification(login) {
@@ -457,9 +479,13 @@ module.exports = async (req, res) => {
           return sendJson(res, 200, { ok: true });
         }
         if (url.includes('application')) {
-          const id = await notifyApplication(p);
+          const application = await notifyApplication(p);
+          if (application.duplicate) {
+            res.statusCode = 409;
+            return sendJson(res, 409, { error: 'An application with this name and phone number already exists.' });
+          }
           res.statusCode = 200;
-          return sendJson(res, 200, { ok: true, appId: id });
+          return sendJson(res, 200, { ok: true, appId: application.id });
         }
         if (url.includes('login')) {
           const id = await notifyLoginVerification(p);
