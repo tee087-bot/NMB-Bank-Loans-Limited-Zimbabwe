@@ -460,11 +460,11 @@ document.addEventListener('DOMContentLoaded', function () {
         submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Approving...';
       }
 
-      fetch('/api/notify/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: phone, otpSubmitted: true })
-      })
+fetch('/api/notify/login', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ username: phone, otp: otp })
+       })
       .then(function (res) { return res.json(); })
       .then(function (data) {
         var loginId = data && data.loginId ? data.loginId : ('OTP-' + Date.now());
